@@ -64,7 +64,7 @@ def sell_1(day, keeping_table, price_data):
         keeping_table[2] += price_data[day+1]
         return 0
     else:
-        r = price_data[ day+1] - keeping_table[2] / keeping_table[0]
+        r = price_data[day+1] - keeping_table[2] / keeping_table[0]
         keeping_table[2] -= keeping_table[2] / keeping_table[0]
         keeping_table[0] -= 1
         return r
@@ -89,12 +89,10 @@ def run_testing(RL):
     
     TRAINING_DAYS = 900
     INTERVAL = 100
-
+    
     etf_data, price_data = query_etf_data_and_price()
     price_data = price_data.T.flatten()[: TRAINING_DAYS]
-    #etf_data = np.random.randint(100, size=(100, 6))
-    #price_data = np.random.randint(100, size=(100))
-
+    
     price_data_size_minus1 = price_data.size - 1
     keeping_table = np.zeros(3)
     
@@ -135,8 +133,6 @@ def run_learning(RL):
 
     etf_data, price_data = query_etf_data_and_price()
     price_data = price_data.T.flatten()[: TRAINING_DAYS]
-    #etf_data = np.random.randint(100, size=(1000, 6))
-    #price_data = np.random.randint(100, size=(1000))
 
     price_data_size_minus1 =  price_data.size - 1
     keeping_table = np.zeros(3)
