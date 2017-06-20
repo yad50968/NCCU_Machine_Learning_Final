@@ -2,14 +2,15 @@ from DQN_brain import DeepQNetwork
 import psycopg2
 import random
 import numpy as np
+import sys
 
 
 def query_etf_data_and_price():
-    conn = psycopg2.connect(host="",
-                            dbname="",
-                            user="",
-                            password="",
-                            port="")
+    conn = psycopg2.connect(host="140.119.19.108",
+                            dbname="mlclass",
+                            user="mlstd",
+                            password="iloveml",
+                            port="5432")
     cur = conn.cursor()
 
     etf_data_query = """
@@ -32,11 +33,11 @@ def query_etf_data_and_price():
     cur.execute(etf_data_query)
     etf_data = np.array(cur.fetchall())
 
-    
+
     price_query = """
-                SELECT close 
-                FROM etf_data 
-                WHERE date > 2999 AND date < 4351 AND etf_id = 1 
+                SELECT close
+                FROM etf_data
+                WHERE date > 2999 AND date < 4351 AND etf_id = 1
                 ORDER BY date ASC
            """
 
@@ -82,54 +83,52 @@ def buy_1(day, keeping_table, price_data):
         keeping_table[1] -= 1
         return r
 
-def run_testing(RL):
-    
+def run_testing(RL, INTERVAL):
+
     total_reward = 0
-    day = 0
-    
+
     TRAINING_DAYS = 900
-    INTERVAL = 100
-    
+
+    day = 0
     etf_data, price_data = query_etf_data_and_price()
     price_data = price_data.T.flatten()[: TRAINING_DAYS]
-    
+
     price_data_size_minus1 = price_data.size - 1
     keeping_table = np.zeros(3)
-    
-    
+
+
     for i in range(3):
         keeping_table[i] = 0
-        
+
     observation = etf_data[day]
 
     for i in range(INTERVAL):
-          
+
         # RL choose action based on observation
         action = RL.choose_action(observation)
 
         # RL take action and get next observation and reward
-        
+
         if day != price_data_size_minus1:
             observation_ = etf_data[day+1]
         else:
             observation_ = observation
-                
+
         reward = observe_r_update(action, day, keeping_table, price_data)
         total_reward += reward
-            
+
 
         # swap observation
         observation = observation_
 
         # break while loop when end of this episode
         day += 1
-        
+
     return total_reward
 
-def run_learning(RL):
-    
+def run_learning(RL, INTERVAL):
+
     TRAINING_DAYS = 900
-    INTERVAL = 100
 
     etf_data, price_data = query_etf_data_and_price()
     price_data = price_data.T.flatten()[: TRAINING_DAYS]
@@ -138,7 +137,7 @@ def run_learning(RL):
     keeping_table = np.zeros(3)
     step = 0
 
-    for episode in range(350):
+    for episode in range(1500):
         # initial observation
         for i in range(3):
             keeping_table[i] = 0
@@ -146,17 +145,17 @@ def run_learning(RL):
         observation = etf_data[day]
 
         for i in range(INTERVAL):
-          
+
             # RL choose action based on observation
             action = RL.choose_action(observation)
 
             # RL take action and get next observation and reward
-            
+
             if day != price_data_size_minus1:
                 observation_ = etf_data[day+1]
             else:
                 observation_ = observation
-                
+
             reward = observe_r_update(action, day, keeping_table, price_data)
             RL.store_transition(observation, action, reward, observation_)
 
@@ -167,24 +166,31 @@ def run_learning(RL):
             observation = observation_
 
             # break while loop when end of this episode
-            
+
             step += 1
             day += 1
 
 
 if __name__ == "__main__":
-   
+
+    learning_rate = sys.argv[1]
+    reward_decay = sys.argv[2]
+    INTERVAL = sys.argv[3]
+
+
     RL = DeepQNetwork(n_actions=3,
-                      n_features=6,
-                      learning_rate=0.01,
-                      reward_decay=0.9,
-                      e_greedy=0.9,
-                      replace_target_iter=200,
-                      memory_size=2000,
-                      output_graph=True
-                      )
-    run_learning(RL)
-    value = run_testing(RL)
-    print(value)
-    RL.plot_cost()
-  
+                        n_features=6,
+                        learning_rate=float(learning_rate),
+                        reward_decay=float(reward_decay),
+                        e_greedy=0.9,
+                        replace_target_iter=500,
+                        memory_size=20000,
+                        output_graph=False
+                        )
+    run_learning(RL, int(INTERVAL))
+    value = run_testing(RL, int(INTERVAL))
+    cost = RL.get_last_cost()
+    file = open("./result/" + learning_rate+"_"+reward_decay+"_"+INTERVAL + "_good", "a")
+    file.write("value: %f ,  cost: %f \n" % (value,cost))
+    file.close()
+

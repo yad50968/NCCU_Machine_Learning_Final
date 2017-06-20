@@ -142,8 +142,7 @@ class DeepQNetwork:
         # check to replace target parameters
         if self.learn_step_counter % self.replace_target_iter == 0:
             self._replace_target_params()
-            print('\ntarget_params_replaced %d \n' % self.learn_step_counter)
-
+            
         # sample batch memory from all memory
         if self.memory_counter > self.memory_size:
             sample_index = np.random.choice(self.memory_size, size=self.batch_size)
@@ -209,3 +208,6 @@ class DeepQNetwork:
         plt.ylabel('Cost')
         plt.xlabel('training steps')
         plt.show()
+
+    def get_last_cost(self):
+        return self.cost_his[-1]
